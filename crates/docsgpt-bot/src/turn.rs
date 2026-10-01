@@ -77,6 +77,10 @@ pub struct Ask {
     pub agent: Option<String>,
     /// Stops the turn when cancelled; a fresh token when `None`.
     pub cancel: Option<CancellationToken>,
+    /// Where the chat's active agent is read and switched; `scope` when `None`.
+    /// Use a wider scope when every thread should share one agent choice (e.g.
+    /// a whole DM where each message starts its own thread).
+    pub state_scope: Option<Scope>,
 }
 
 impl Ask {
@@ -88,6 +92,7 @@ impl Ask {
             attachments: Vec::new(),
             agent: None,
             cancel: None,
+            state_scope: None,
         }
     }
 
@@ -141,7 +146,8 @@ pub enum TurnReport {
 /// the surface fails to begin or finish; DocsGPT failures end the turn with
 /// [`Outcome::Failed`] instead.
 pub async fn run_turn<S: Surface>(core: &BotCore, surface: &S, ask: Ask) -> Result<TurnReport> {
-    let state = core.storage.chat_state(&ask.scope).await.unwrap_or_else(|e| {
+    let state_scope = ask.state_scope.as_ref().unwrap_or(&ask.scope);
+    let state = core.storage.chat_state(state_scope).await.unwrap_or_else(|e| {
         tracing::warn!(error = %e, "could not read chat state");
         Default::default()
     });
@@ -164,7 +170,7 @@ pub async fn run_turn<S: Surface>(core: &BotCore, surface: &S, ask: Ask) -> Resu
             return Ok(TurnReport::Empty);
         }
         core.storage
-            .update_chat_state(&ask.scope, StatePatch::active_agent(Some(&agent.name)))
+            .update_chat_state(state_scope, StatePatch::active_agent(Some(&agent.name)))
             .await?;
         let about = agent
             .description
@@ -238,6 +244,7 @@ pub async fn run_turn<S: Surface>(core: &BotCore, surface: &S, ask: Ask) -> Resu
                     let visible = close_open_fence(&visible);
                     let progress = Progress {
                         answer: &visible,
+                        raw: &st.answer,
                         status: st.status.as_deref(),
                         thinking: st.thinking && st.answer.is_empty(),
                     };

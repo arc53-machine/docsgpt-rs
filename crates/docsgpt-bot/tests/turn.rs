@@ -451,3 +451,74 @@ async fn turns_in_one_scope_run_one_at_a_time() {
         "second turn did not wait"
     );
 }
+
+#[tokio::test]
+async fn state_scope_holds_the_agent_choice_across_threads() {
+    let docs = MockDocsGpt::start().await;
+    let core = core(&docs, &[("support", "k-support"), ("sales", "k-sales")]);
+    let dm = Scope::new("bot", "T:D1", "0");
+    let in_thread = |t: &str| {
+        let mut a = Ask::new(Scope::new("bot", "T:D1", t), "");
+        a.state_scope = Some(dm.clone());
+        a
+    };
+
+    let mut switch = in_thread("1.1");
+    switch.text = "#sales".into();
+    assert_eq!(
+        run_turn(&core, &FakeSurface::new(), switch).await.unwrap(),
+        TurnReport::SwitchedAgent { agent: "sales".into() }
+    );
+    assert_eq!(
+        core.storage.chat_state(&dm).await.unwrap().active_agent.as_deref(),
+        Some("sales")
+    );
+
+    // A new thread in the same DM uses the DM's agent.
+    let mut ask = in_thread("2.2");
+    ask.text = "price?".into();
+    run_turn(&core, &FakeSurface::new(), ask).await.unwrap();
+    assert_eq!(docs.rec.last("/stream").unwrap().body["api_key"], "k-sales");
+    // Without a state scope the thread's own (empty) state applies.
+    run_turn(
+        &core,
+        &FakeSurface::new(),
+        Ask::new(Scope::new("bot", "T:D1", "3.3"), "hi"),
+    )
+    .await
+    .unwrap();
+    assert_eq!(docs.rec.last("/stream").unwrap().body["api_key"], "k-support");
+}
+
+#[tokio::test]
+async fn progress_raw_only_grows() {
+    let docs = MockDocsGpt::start().await;
+    docs.on_stream(|_| {
+        sse(vec![
+            ev::step(ev::message_id("m", "c")),
+            ev::step(ev::answer("See ![x](https://i/x.png) and\n```py\nprint(1)")),
+            Step::Sleep(Duration::from_millis(80)),
+            ev::step(ev::answer("\n```\nDone")),
+            ev::step(ev::end()),
+        ])
+    });
+    let core = core(&docs, &[("default", "k")]);
+    let surface = FakeSurface::new().interval(Duration::from_millis(20));
+    run_turn(&core, &surface, Ask::new(scope(), "q")).await.unwrap();
+    let raws: Vec<String> = surface
+        .calls()
+        .into_iter()
+        .filter_map(|c| match c {
+            Recorded::Update { raw, .. } => Some(raw),
+            _ => None,
+        })
+        .collect();
+    assert!(raws.len() >= 2, "{raws:?}");
+    for w in raws.windows(2) {
+        assert!(w[1].starts_with(&w[0]), "raw must only grow: {w:?}");
+    }
+    assert_eq!(raws[0], "See ![x](https://i/x.png) and\n```py\nprint(1)");
+    // The display form closes the fence and drops the image.
+    let first = &surface.updates()[0].0;
+    assert!(first.ends_with("print(1)\n```") && !first.contains("!["), "{first}");
+}

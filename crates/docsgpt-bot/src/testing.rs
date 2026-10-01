@@ -22,8 +22,10 @@ pub enum Recorded {
     },
     /// `update`.
     Update {
-        /// Partial answer.
+        /// Partial answer (display form).
         answer: String,
+        /// Partial answer as received.
+        raw: String,
         /// Tool status.
         status: Option<String>,
         /// Reasoning, no answer yet.
@@ -192,6 +194,7 @@ impl Surface for FakeSurface {
     async fn update(&self, _turn: &Turn, _draft: &mut FakeDraft, p: Progress<'_>) -> Result<()> {
         self.record(Recorded::Update {
             answer: p.answer.to_string(),
+            raw: p.raw.to_string(),
             status: p.status.map(str::to_string),
             thinking: p.thinking,
         });

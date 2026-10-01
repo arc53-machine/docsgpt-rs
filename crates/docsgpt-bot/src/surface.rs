@@ -31,6 +31,9 @@ pub struct Turn {
 pub struct Progress<'a> {
     /// Answer so far, as Markdown: images removed and any open code fence closed.
     pub answer: &'a str,
+    /// Answer so far exactly as received. Each update's `raw` extends the
+    /// previous one, so platforms that can only append text send `raw[sent..]`.
+    pub raw: &'a str,
     /// What a tool is doing right now ("Running code"), if anything.
     pub status: Option<&'a str>,
     /// The model is reasoning and no answer text has arrived yet.

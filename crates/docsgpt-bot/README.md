@@ -31,6 +31,8 @@ let report = run_turn(&core, &SlackReply::new(channel, thread_ts), Ask::new(scop
 
 `run_turn` calls `begin` once, then `update` as the answer streams in. Updates are throttled to `Surface::update_interval`, but tool status changes are shown at once and a draft is refreshed when the stream goes quiet. `finish` is called exactly once whatever happened: `Final::outcome` says whether the answer is complete, stopped or failed, and `Final::display_text` gives the standard wording. A partial answer that ends in an error shows both.
 
+`Progress::answer` is display-ready: images are removed and an open code fence is closed. `Progress::raw` is the text as received and only ever grows, for platforms that can only append (Slack's streaming API). `Ask::state_scope` keeps the active agent in a wider scope than the conversation, e.g. one agent choice per DM while each message starts its own thread.
+
 For Stop, register `Turn::cancel` under the platform's id in a `CancelRegistry` inside `begin`, and call `CancelRegistry::cancel` when the user presses Stop.
 
 With the `testing` feature, `testing::FakeSurface` records every call, so a bot can test its routing without a platform. Pair it with `docsgpt`'s `mock` feature.
