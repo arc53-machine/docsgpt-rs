@@ -1,0 +1,43 @@
+[package]
+name = "docsgpt"
+description = "Rust client for the DocsGPT API: streaming answers, attachments, speech, artifacts and feedback"
+readme = "README.md"
+keywords = ["docsgpt", "llm", "rag", "sse", "api"]
+categories = ["api-bindings", "web-programming::http-client"]
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+
+[features]
+default = []
+## An in-process fake DocsGPT server (axum) for tests of code built on this crate.
+mock = ["dep:axum", "tokio/net", "tokio/rt", "tokio/sync"]
+
+[dependencies]
+base64.workspace = true
+bytes.workspace = true
+futures-util.workspace = true
+reqwest.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+axum = { workspace = true, optional = true }
+
+[dev-dependencies]
+docsgpt = { path = ".", features = ["mock"] }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+
+[[example]]
+name = "ask"
+
+[package.metadata.docs.rs]
+all-features = true
+
+[lints]
+workspace = true
