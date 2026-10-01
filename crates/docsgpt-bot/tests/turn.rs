@@ -522,3 +522,23 @@ async fn progress_raw_only_grows() {
     let first = &surface.updates()[0].0;
     assert!(first.ends_with("print(1)\n```") && !first.contains("!["), "{first}");
 }
+
+#[tokio::test]
+async fn final_raw_and_note() {
+    let docs = MockDocsGpt::start().await;
+    docs.on_stream(|_| {
+        sse(vec![
+            ev::step(ev::message_id("m", "c")),
+            ev::step(ev::answer(" Hi ![a](https://i/a.png) ")),
+            ev::step(ev::error("boom")),
+        ])
+    });
+    let core = core(&docs, &[("default", "k")]);
+    let s = FakeSurface::new();
+    run_turn(&core, &s, Ask::new(scope(), "q")).await.unwrap();
+    let f = s.finished();
+    assert_eq!(f.raw, " Hi ![a](https://i/a.png) ");
+    assert_eq!(f.answer, "Hi");
+    assert_eq!(f.note().as_deref(), Some("_The answer was cut short: boom_"));
+    assert_eq!(f.display_text(), "Hi\n\n_The answer was cut short: boom_");
+}

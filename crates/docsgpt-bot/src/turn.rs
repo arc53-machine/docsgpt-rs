@@ -267,6 +267,7 @@ pub async fn run_turn<S: Surface>(core: &BotCore, surface: &S, ask: Ask) -> Resu
     }
     let result = Final {
         answer,
+        raw: st.answer.clone(),
         images,
         sources: st.sources,
         outcome: st.outcome.unwrap_or(Outcome::Complete),

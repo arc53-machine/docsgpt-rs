@@ -59,6 +59,9 @@ pub enum Outcome {
 pub struct Final {
     /// The answer as Markdown with images removed (see `images`). Trimmed; may be empty.
     pub answer: String,
+    /// The answer exactly as received (the last [`Progress::raw`] plus anything
+    /// after it), for platforms that append the remainder to a stream.
+    pub raw: String,
     /// Image URLs: from the answer's Markdown, then from tools.
     pub images: Vec<String>,
     /// Sources DocsGPT used.
@@ -75,13 +78,26 @@ impl Final {
     /// The text to show: the answer, plus a note when it was cut short; or a
     /// short message when there is no answer at all.
     pub fn display_text(&self) -> String {
-        match (&self.outcome, self.answer.is_empty()) {
-            (Outcome::Complete, false) => self.answer.clone(),
-            (Outcome::Complete, true) => "Sorry, I couldn't get an answer right now.\n\nNo answer was produced.".into(),
-            (Outcome::Stopped, true) => "Stopped.".into(),
-            (Outcome::Stopped, false) => format!("{}\n\n_Stopped._", self.answer),
-            (Outcome::Failed { detail }, true) => format!("Sorry, I couldn't get an answer right now.\n\n{detail}"),
-            (Outcome::Failed { detail }, false) => format!("{}\n\n_The answer was cut short: {detail}_", self.answer),
+        if self.answer.is_empty() {
+            return match &self.outcome {
+                Outcome::Stopped => "Stopped.".into(),
+                Outcome::Complete => "Sorry, I couldn't get an answer right now.\n\nNo answer was produced.".into(),
+                Outcome::Failed { detail } => format!("Sorry, I couldn't get an answer right now.\n\n{detail}"),
+            };
+        }
+        match self.note() {
+            Some(note) => format!("{}\n\n{note}", self.answer),
+            None => self.answer.clone(),
+        }
+    }
+
+    /// The line to add after a partial answer: `_Stopped._` or
+    /// `_The answer was cut short: …_`. `None` for a complete answer.
+    pub fn note(&self) -> Option<String> {
+        match &self.outcome {
+            Outcome::Complete => None,
+            Outcome::Stopped => Some("_Stopped._".into()),
+            Outcome::Failed { detail } => Some(format!("_The answer was cut short: {detail}_")),
         }
     }
 
