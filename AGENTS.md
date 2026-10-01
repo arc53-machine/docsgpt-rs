@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Cargo workspace of Rust crates for DocsGPT. `crates/docsgpt` is the API client; `crates/docsgpt-bot` (in progress) is the shared bot plumbing used by the Telegram and Slack bots, which live in their own repos.
+Cargo workspace of Rust crates for DocsGPT. `crates/docsgpt` is the API client; `crates/docsgpt-bot` is the shared bot plumbing used by the Telegram and Slack bots, which live in their own repos.
 
 ## Commands
 
