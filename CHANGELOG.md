@@ -10,6 +10,8 @@ First release. Generalized from the Telegram bot:
 - `Agents`: validation and `#name` / active / default routing.
 - `storage`: string-keyed `Scope`, conversations with a turn counter (feedback's `question_index`), chat state, JSON records, and message refs. SQLite and memory backends share one contract test suite. Reads Telegram bot v2 SQLite files.
 - `runtime`: `ScopeLocks`, `CancelRegistry` (guards unregister on drop), `Shutdown` that drains turns in progress.
+- `run_turn` + `Surface`: the platform-neutral answer loop. It handles routing, the per-scope lock, streaming with throttled updates (flushed when the stream goes quiet), tool status, Stop, failures as outcomes (a partial answer keeps its error note), turn positions, message refs for `submit_feedback`, and tool files.
+- `testing` feature: `FakeSurface` and the storage contract tests.
 - `markdown`: fence-aware block splitting and clamping (the Telegram bot could cut inside a code block), image extraction, monospace tables.
 
 ### docsgpt 0.1.0

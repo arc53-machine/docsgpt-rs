@@ -247,6 +247,8 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "docsgpt",
+ "docsgpt-bot",
+ "futures-util",
  "regex",
  "rusqlite",
  "serde",

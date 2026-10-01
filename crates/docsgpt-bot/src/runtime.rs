@@ -91,8 +91,13 @@ impl CancelRegistry {
     /// Register a turn under `key`, replacing any earlier one with the same key.
     /// `parent` (e.g. the shutdown token) also cancels it.
     pub fn register(&self, key: impl Into<String>, parent: Option<&CancellationToken>) -> CancelGuard {
+        self.insert(key, parent.map(CancellationToken::child_token).unwrap_or_default())
+    }
+
+    /// Register an existing token under `key` (e.g. a turn's own token, once the
+    /// platform knows the id the user will press Stop on).
+    pub fn insert(&self, key: impl Into<String>, token: CancellationToken) -> CancelGuard {
         let key = key.into();
-        let token = parent.map(CancellationToken::child_token).unwrap_or_default();
         let mut inner = self.lock();
         inner.next_id += 1;
         let id = inner.next_id;
