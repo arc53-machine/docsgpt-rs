@@ -9,8 +9,31 @@ Shared plumbing for chat bots that answer with [DocsGPT](https://www.docsgpt.clo
 | `storage` | Which DocsGPT conversation each chat (and thread) is in for each agent, how many turns it has had (feedback needs an answer's position), per-chat state, and JSON records for platform-only state. SQLite or memory. |
 | `runtime` | `ScopeLocks` (one turn at a time per chat), `CancelRegistry` (stoppable turns), `Shutdown` (signal handling that waits for turns in progress). |
 | `markdown` | Splits long answers into messages without breaking code blocks, closes open fences in partial answers, extracts images. |
+| `run_turn` | The answer loop. It routes to an agent, streams DocsGPT's answer, shows tool status, handles Stop, records the conversation and the answer's position, downloads tool files, and maps the answer's message to it for `submit_feedback`. |
 
-Coming next: a platform-neutral answer loop that each bot drives through a small `Surface` trait.
+## The answer loop
+
+A platform implements `Surface` once. Build one per incoming message, holding where to reply:
+
+```rust,ignore
+#[async_trait]
+impl Surface for SlackReply {
+    type Draft = StreamHandle;
+    async fn begin(&self, turn: &Turn) -> Result<StreamHandle> { /* start a stream / typing */ }
+    async fn update(&self, turn: &Turn, d: &mut StreamHandle, p: Progress<'_>) -> Result<()> { /* show p.answer, p.status */ }
+    async fn finish(&self, turn: &Turn, d: StreamHandle, f: &Final) -> Result<Option<String>> { /* f.display_text(), f.sources, f.images */ }
+    async fn send_file(&self, turn: &Turn, file: Download) -> Result<()> { /* upload */ }
+    async fn notice(&self, text: &str) -> Result<()> { /* plain message */ }
+}
+
+let report = run_turn(&core, &SlackReply::new(channel, thread_ts), Ask::new(scope, text)).await?;
+```
+
+`run_turn` calls `begin` once, then `update` as the answer streams in. Updates are throttled to `Surface::update_interval`, but tool status changes are shown at once and a draft is refreshed when the stream goes quiet. `finish` is called exactly once whatever happened: `Final::outcome` says whether the answer is complete, stopped or failed, and `Final::display_text` gives the standard wording. A partial answer that ends in an error shows both.
+
+For Stop, register `Turn::cancel` under the platform's id in a `CancelRegistry` inside `begin`, and call `CancelRegistry::cancel` when the user presses Stop.
+
+With the `testing` feature, `testing::FakeSurface` records every call, so a bot can test its routing without a platform. Pair it with `docsgpt`'s `mock` feature.
 
 ```rust,no_run
 use docsgpt_bot::{AgentConfig, Agents, Routed, Scope, Storage, storage};

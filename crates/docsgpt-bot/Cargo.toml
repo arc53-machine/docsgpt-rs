@@ -13,23 +13,27 @@ homepage.workspace = true
 authors.workspace = true
 
 [features]
-## Test helpers for code built on this crate (storage contract tests).
+## Test helpers for code built on this crate: FakeSurface and the storage contract tests.
 testing = []
 
 [dependencies]
 docsgpt.workspace = true
 async-trait.workspace = true
+futures-util.workspace = true
 regex.workspace = true
 rusqlite.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
-tokio = { workspace = true, features = ["sync", "rt", "signal", "macros"] }
+tokio = { workspace = true, features = ["sync", "rt", "signal", "macros", "time"] }
 tokio-util.workspace = true
 toml.workspace = true
 tracing.workspace = true
 
 [dev-dependencies]
+docsgpt = { workspace = true, features = ["mock"] }
+docsgpt-bot = { path = ".", features = ["testing"] }
+serde_json.workspace = true
 tokio = { workspace = true, features = ["macros", "rt-multi-thread", "test-util"] }
 tempfile = "3.27.0"
 
