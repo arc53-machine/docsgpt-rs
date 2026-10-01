@@ -1,0 +1,36 @@
+name: Release
+
+# Push a tag like v0.1.0 (matching [workspace.package] version) to publish
+# every crate in the workspace to crates.io, in dependency order.
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    # Settings → Environments → release; add required reviewers to approve each publish.
+    environment: release
+    permissions:
+      contents: read
+      id-token: write # crates.io Trusted Publishing
+    env:
+      HAS_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Tag matches the workspace version
+        run: |
+          version=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].version')
+          test "v$version" = "$GITHUB_REF_NAME" || { echo "tag $GITHUB_REF_NAME != v$version"; exit 1; }
+      - run: cargo test --locked --workspace --all-features
+      # The first release of a crate needs the CARGO_REGISTRY_TOKEN secret; once
+      # Trusted Publishing is configured on crates.io, delete the secret and this
+      # step exchanges the workflow's OIDC token instead.
+      - name: crates.io Trusted Publishing
+        id: auth
+        if: env.HAS_TOKEN != 'true'
+        uses: rust-lang/crates-io-auth-action@v1
+      - run: cargo publish --locked --workspace
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN || steps.auth.outputs.token }}

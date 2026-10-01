@@ -1,0 +1,31 @@
+[workspace]
+resolver = "3"
+members = ["crates/*"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+license = "MIT"
+repository = "https://github.com/arc53/docsgpt-rs"
+homepage = "https://www.docsgpt.cloud/"
+authors = ["Arc53"]
+
+[workspace.dependencies]
+axum = { version = "0.8.9", features = ["multipart"] }
+base64 = "0.22"
+bytes = "1.12.1"
+futures-util = "0.3.34"
+reqwest = { version = "0.13", default-features = false, features = ["json", "multipart", "stream", "rustls", "query", "http2", "charset"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+thiserror = "2.0.20"
+tokio = { version = "1.53.1", features = ["time"] }
+tracing = "0.1.44"
+
+[workspace.lints.rust]
+missing_docs = "warn"
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
