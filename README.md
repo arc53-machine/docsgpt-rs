@@ -5,7 +5,7 @@ Rust crates for [DocsGPT](https://github.com/arc53/DocsGPT).
 | Crate | What it is |
 |---|---|
 | [`docsgpt`](crates/docsgpt) | API client: streaming answers, attachments, speech, artifacts, feedback, and a mock server for tests. |
-| `docsgpt-bot` *(coming)* | Shared plumbing for chat bots built on DocsGPT agents: config, agent routing, storage, and an answer loop that works on any platform. |
+| [`docsgpt-bot`](crates/docsgpt-bot) | Shared plumbing for chat bots built on DocsGPT agents: config, agent routing, storage, concurrency helpers, Markdown splitting. An answer loop that works on any platform is next. |
 
 The [Telegram](https://github.com/arc53/tg-bot-docsgpt-extenstion) and [Slack](https://github.com/arc53/slack-bot-docsgpt-extenstion) bots are built on these crates.
 
